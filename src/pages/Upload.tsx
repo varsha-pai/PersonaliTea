@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
-import { ArrowRight, FileText, FileUp, Image, Loader, Upload, X } from 'lucide-react';
+import { ArrowRight, FileText, FileUp, Loader, Upload, X } from 'lucide-react';
 import { processFileContents } from '../services/fileProcessor';
 
 interface FileWithPreview extends File {
