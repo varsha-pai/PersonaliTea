@@ -1,238 +1,216 @@
-import { PersonalityTrait } from './personalityAnalyzer';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
+import { ArrowLeft, Brain, Check, Quote, Upload } from 'lucide-react';
+import { analyzePersonality } from '../services/personalityAnalyzer';
 
-// Define the structure for corpus entries
-interface CorpusEntry {
-  text: string;
-  traits: {
-    openness: number;
-    conscientiousness: number;
-    extraversion: number;
-    agreeableness: number;
-    neuroticism: number;
-  };
+interface PersonalityTrait {
+  name: string;
+  value: number;
+  description: string;
+}
+
+interface SimilarProfile {
   category: string;
   description: string;
 }
 
-// Predefined corpus of text samples with known personality traits
-const personalityCorpus: CorpusEntry[] = [
-  {
-    text: "I love exploring new ideas and concepts. Every day brings exciting opportunities to learn something different. I'm always curious about how things work and why they are the way they are. Abstract thinking and philosophical discussions really energize me. I enjoy challenging conventional wisdom and thinking outside the box.",
-    traits: {
-      openness: 9,
-      conscientiousness: 6,
-      extraversion: 7,
-      agreeableness: 6,
-      neuroticism: 4
-    },
-    category: "high_openness",
-    description: "Creative and intellectually curious individual who values novelty and exploration"
-  },
-  {
-    text: "I believe in following a structured approach to everything I do. Planning ahead and being organized helps me stay on track. I make detailed to-do lists and stick to my schedule. Deadlines are important to me, and I always deliver on my commitments. I pay attention to details and take pride in doing things thoroughly.",
-    traits: {
-      openness: 5,
-      conscientiousness: 9,
-      extraversion: 4,
-      agreeableness: 6,
-      neuroticism: 3
-    },
-    category: "high_conscientiousness",
-    description: "Methodical and organized individual who values structure and responsibility"
-  },
-  {
-    text: "I really enjoy being around people and socializing. Group activities and team projects are my favorite. I love meeting new people and making connections. I'm energized by social interactions and feel most alive when I'm with others. I'm comfortable speaking up in groups and sharing my thoughts.",
-    traits: {
-      openness: 7,
-      conscientiousness: 5,
-      extraversion: 9,
-      agreeableness: 7,
-      neuroticism: 4
-    },
-    category: "high_extraversion",
-    description: "Outgoing and sociable individual who thrives in social settings"
-  },
-  {
-    text: "I always try to be understanding and considerate of others' feelings. I believe in treating everyone with kindness and respect. I enjoy helping people and making them feel comfortable. I'm good at seeing things from different perspectives and finding common ground. Harmony in relationships is important to me.",
-    traits: {
-      openness: 6,
-      conscientiousness: 6,
-      extraversion: 6,
-      agreeableness: 9,
-      neuroticism: 5
-    },
-    category: "high_agreeableness",
-    description: "Empathetic and cooperative individual who values harmony and understanding"
-  },
-  {
-    text: "I often worry about things and can be quite sensitive to stress. I tend to overthink situations and sometimes feel overwhelmed. My emotions can be intense, and I'm very aware of my feelings. I'm careful about making decisions because I want to avoid potential problems. I appreciate reassurance and support from others.",
-    traits: {
-      openness: 6,
-      conscientiousness: 7,
-      extraversion: 4,
-      agreeableness: 6,
-      neuroticism: 8
-    },
-    category: "high_neuroticism",
-    description: "Emotionally sensitive individual who experiences feelings deeply"
-  },
-  {
-    text: "I prefer familiar routines and traditional approaches. I like things to be practical and straightforward. I'm not really into abstract theories or unconventional ideas. I value stability and prefer to stick with what I know works. I'm more comfortable with concrete facts than speculative concepts.",
-    traits: {
-      openness: 3,
-      conscientiousness: 7,
-      extraversion: 5,
-      agreeableness: 6,
-      neuroticism: 4
-    },
-    category: "low_openness",
-    description: "Practical and conventional individual who prefers familiarity and tradition"
-  },
-  {
-    text: "I like to keep things flexible and spontaneous. I don't need strict schedules or detailed plans. I'm comfortable going with the flow and adapting to changes. I prefer a relaxed approach to tasks and deadlines. I'm not too concerned about perfect organization or meticulous details.",
-    traits: {
-      openness: 7,
-      conscientiousness: 3,
-      extraversion: 6,
-      agreeableness: 6,
-      neuroticism: 4
-    },
-    category: "low_conscientiousness",
-    description: "Spontaneous and flexible individual who prefers a relaxed approach"
-  },
-  {
-    text: "I enjoy my own company and prefer quiet environments. I need time alone to recharge and process my thoughts. I'm comfortable with silence and don't feel the need to always be social. I prefer deep one-on-one conversations over large group settings. I'm selective about my social interactions.",
-    traits: {
-      openness: 6,
-      conscientiousness: 6,
-      extraversion: 3,
-      agreeableness: 6,
-      neuroticism: 4
-    },
-    category: "low_extraversion",
-    description: "Introspective and reserved individual who values solitude and meaningful connections"
-  },
-  {
-    text: "I believe in being direct and honest in my communication. I value logical thinking and objective analysis. I'm comfortable with healthy debate and constructive criticism. I focus on facts and solutions rather than emotions. I prefer straightforward interactions over excessive politeness.",
-    traits: {
-      openness: 6,
-      conscientiousness: 7,
-      extraversion: 5,
-      agreeableness: 3,
-      neuroticism: 4
-    },
-    category: "low_agreeableness",
-    description: "Direct and analytical individual who values honesty and logical thinking"
-  },
-  {
-    text: "I generally stay calm under pressure and don't get easily stressed. I'm emotionally stable and don't experience intense mood swings. I take things in stride and maintain my composure in challenging situations. I'm confident in my ability to handle difficulties. I don't worry excessively about things.",
-    traits: {
-      openness: 6,
-      conscientiousness: 6,
-      extraversion: 5,
-      agreeableness: 6,
-      neuroticism: 2
-    },
-    category: "low_neuroticism",
-    description: "Emotionally stable individual who maintains composure under pressure"
+interface PersonalityResult {
+  summary: string;
+  traits: PersonalityTrait[];
+  evidenceQuotes: string[];
+  recommendations: string[];
+  similarProfiles?: SimilarProfile[];
+}
+
+const Results = () => {
+  const [result, setResult] = useState<PersonalityResult | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    const analyzedText = localStorage.getItem('analyzedText');
+    
+    if (!analyzedText) {
+      navigate('/upload');
+      return;
+    }
+    
+    const performAnalysis = async () => {
+      try {
+        setIsLoading(true);
+        const analysisResult = await analyzePersonality(analyzedText);
+        setResult(analysisResult);
+      } catch (err) {
+        console.error('Error analyzing personality:', err);
+        setError('Failed to analyze personality. Please try again with different messages.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    performAnalysis();
+  }, [navigate]);
+  
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="relative w-16 h-16 mb-4">
+          <div className="absolute inset-0 rounded-full animate-ping bg-[#a3bce0] opacity-30"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Brain size={32} className="text-[#a3bce0]" />
+          </div>
+        </div>
+        <h2 className="text-xl font-semibold mb-2">Analyzing Personality</h2>
+        <p className="text-gray-600 max-w-md text-center">
+          Our AI is processing the messages to identify personality traits. This may take a moment...
+        </p>
+      </div>
+    );
   }
-];
-
-// Calculate similarity between two texts using cosine similarity
-const calculateCosineSimilarity = (text1: string, text2: string): number => {
-  // Convert texts to word frequency vectors
-  const getWordFrequencies = (text: string): Record<string, number> => {
-    const words = text.toLowerCase().split(/\W+/).filter(word => word.length > 0);
-    const frequencies: Record<string, number> = {};
-    words.forEach(word => {
-      frequencies[word] = (frequencies[word] || 0) + 1;
-    });
-    return frequencies;
-  };
-
-  const vec1 = getWordFrequencies(text1);
-  const vec2 = getWordFrequencies(text2);
-
-  // Get all unique words
-  const allWords = new Set([...Object.keys(vec1), ...Object.keys(vec2)]);
-
-  // Calculate dot product and magnitudes
-  let dotProduct = 0;
-  let magnitude1 = 0;
-  let magnitude2 = 0;
-
-  allWords.forEach(word => {
-    const freq1 = vec1[word] || 0;
-    const freq2 = vec2[word] || 0;
-    dotProduct += freq1 * freq2;
-    magnitude1 += freq1 * freq1;
-    magnitude2 += freq2 * freq2;
-  });
-
-  // Calculate cosine similarity
-  if (magnitude1 === 0 || magnitude2 === 0) return 0;
-  return dotProduct / (Math.sqrt(magnitude1) * Math.sqrt(magnitude2));
-};
-
-// Find the most similar corpus entries to the input text
-const findSimilarEntries = (inputText: string, count: number = 3): CorpusEntry[] => {
-  const similarities = personalityCorpus.map(entry => ({
-    entry,
-    similarity: calculateCosineSimilarity(inputText, entry.text)
-  }));
-
-  return similarities
-    .sort((a, b) => b.similarity - a.similarity)
-    .slice(0, count)
-    .map(item => item.entry);
-};
-
-// Calculate weighted average of traits based on similarity scores
-const calculateWeightedTraits = (inputText: string): Record<string, number> => {
-  const similarEntries = findSimilarEntries(inputText, 5);
   
-  const weights = similarEntries.map(entry => 
-    calculateCosineSimilarity(inputText, entry.text)
+  if (error) {
+    return (
+      <div className="text-center my-12">
+        <div className="text-red-500 mb-4">
+          <svg className="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-bold mb-2">Analysis Error</h2>
+        <p className="text-gray-600 mb-6">{error}</p>
+        <button 
+          onClick={() => navigate('/upload')}
+          className="btn-primary"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+  
+  if (!result) return null;
+  
+  return (
+    <div className="max-w-4xl mx-auto">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="mb-6">
+          <button 
+            onClick={() => navigate('/upload')}
+            className="text-gray-600 hover:text-gray-900 flex items-center gap-1 mb-4"
+          >
+            <ArrowLeft size={16} />
+            <span>Back to Upload</span>
+          </button>
+          
+          <h1 className="text-3xl font-bold mb-2">Personality Analysis Results</h1>
+          <p className="text-gray-600">
+            Based on the messages provided, here's our assessment of this person's personality
+          </p>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Summary</h2>
+          <p className="text-gray-700">{result.summary}</p>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Personality Traits</h2>
+          <div className="h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={result.traits}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="name" />
+                <Radar
+                  name="Traits"
+                  dataKey="value"
+                  stroke="#4F46E5"
+                  fill="#4F46E5"
+                  fillOpacity={0.3}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Detailed Analysis</h2>
+          <div className="space-y-4">
+            {result.traits.map((trait) => (
+              <div key={trait.name} className="border-b border-gray-200 pb-4 last:border-0">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-medium">{trait.name}</h3>
+                  <span className="text-sm text-gray-500">{trait.value.toFixed(1)}/10</span>
+                </div>
+                <p className="text-gray-600 text-sm">{trait.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {result.similarProfiles && result.similarProfiles.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4">Similar Personality Profiles</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {result.similarProfiles.map((profile, index) => (
+                <div key={index} className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-2 capitalize">
+                    {profile.category.replace('_', ' ')}
+                  </h3>
+                  <p className="text-gray-600 text-sm">{profile.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <Quote size={20} />
+            Supporting Evidence
+          </h2>
+          <div className="space-y-4">
+            {result.evidenceQuotes.map((quote, index) => (
+              <blockquote key={index} className="border-l-4 border-indigo-500 pl-4 italic text-gray-600">
+                "{quote}"
+              </blockquote>
+            ))}
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <Check size={20} />
+            Recommendations
+          </h2>
+          <ul className="space-y-2">
+            {result.recommendations.map((recommendation, index) => (
+              <li key={index} className="flex items-start gap-2">
+                <span className="text-indigo-500 mt-1">•</span>
+                <span className="text-gray-600">{recommendation}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        
+        <div className="text-center">
+          <button 
+            onClick={() => navigate('/upload')}
+            className="btn-secondary flex items-center gap-2 mx-auto"
+          >
+            <Upload size={16} />
+            Analyze Another Person
+          </button>
+        </div>
+      </motion.div>
+    </div>
   );
-  
-  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-  const normalizedWeights = weights.map(weight => weight / totalWeight);
-  
-  const traits = {
-    openness: 0,
-    conscientiousness: 0,
-    extraversion: 0,
-    agreeableness: 0,
-    neuroticism: 0
-  };
-  
-  similarEntries.forEach((entry, index) => {
-    const weight = normalizedWeights[index];
-    traits.openness += entry.traits.openness * weight;
-    traits.conscientiousness += entry.traits.conscientiousness * weight;
-    traits.extraversion += entry.traits.extraversion * weight;
-    traits.agreeableness += entry.traits.agreeableness * weight;
-    traits.neuroticism += entry.traits.neuroticism * weight;
-  });
-  
-  // Round to 1 decimal place
-  Object.keys(traits).forEach(trait => {
-    traits[trait as keyof typeof traits] = Math.round(traits[trait as keyof typeof traits] * 10) / 10;
-  });
-  
-  return traits;
 };
 
-// Get personality analysis based on corpus comparison
-export const analyzePersonalityWithCorpus = (text: string): {
-  traits: Record<string, number>;
-  similarProfiles: CorpusEntry[];
-} => {
-  const traits = calculateWeightedTraits(text);
-  const similarProfiles = findSimilarEntries(text, 3);
-  
-  return {
-    traits,
-    similarProfiles
-  };
-}; 
+export default Results;
