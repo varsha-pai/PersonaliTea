@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
-import { ArrowLeft, Brain, Check, Loader, Quote, Upload } from 'lucide-react';
+import { ArrowLeft, Brain, Check, Quote, Upload } from 'lucide-react';
 import { analyzePersonality } from '../services/personalityAnalyzer';
 
 interface PersonalityTrait {
