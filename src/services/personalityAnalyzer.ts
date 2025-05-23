@@ -1,4 +1,4 @@
-import { analyzeText, mapNlpToPersonalityTraits, extractRelevantQuotes } from './nlpService';
+import { extractRelevantQuotes } from './nlpService';
 import { analyzePersonalityWithCorpus } from './corpusService';
 
 export interface PersonalityTrait {
