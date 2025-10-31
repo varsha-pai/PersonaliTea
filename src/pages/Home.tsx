@@ -20,7 +20,7 @@ const Home = () => {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          Upload text messages, PDF files, documents, or even images to uncover personality traits using advanced AI analysis.
+          Upload text messages, Text files to uncover personality traits using advanced AI analysis.
         </motion.p>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
