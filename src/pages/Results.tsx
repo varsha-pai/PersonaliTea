@@ -65,7 +65,7 @@ const Results = () => {
         </div>
         <h2 className="text-xl font-semibold mb-2">Analyzing Personality</h2>
         <p className="text-gray-600 max-w-md text-center">
-          Our AI is processing the messages to identify personality traits. This may take a moment...
+          We are processing the messages to identify personality traits. This may take a moment...
         </p>
       </div>
     );
