@@ -44,7 +44,7 @@ const UploadPage = () => {
       if (rejection?.errors[0]?.code === 'file-too-large') {
         setError('File is too large. Maximum size is 10MB.');
       } else {
-        setError('Invalid file type. Please upload text, PDF, DOC, DOCX, or image files.');
+        setError('Invalid file type. Please upload text, txt files.');
       }
     }
   });
@@ -119,7 +119,7 @@ const UploadPage = () => {
             or click to browse files
           </p>
           <p className="text-xs text-gray-400">
-            Accepts: TXT, PDF, DOC, DOCX, PNG, JPG (Max 10MB)
+            Accepts: TXT (Max 10MB)
           </p>
         </div>
 
